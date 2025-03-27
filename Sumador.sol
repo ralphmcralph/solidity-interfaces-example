@@ -19,11 +19,12 @@ contract Sumador {
 
     // function + nombre + argumentos + visibilidad + modificadores + valor devuelto
     function addition(uint256 num1_, uint256 num2_) external {
-        
         uint256 resultado_ = num1_ + num2_;
-
         IResultado(resultado).setResultado(resultado_);
-        
-    }    
+    }
+
+    function setFee(uint256 newFee_) external {
+        IResultado(resultado).setFee(newFee_);
+    }   
 
 }
