@@ -1,6 +1,8 @@
 # 🔢 Sumador – Sistema modular de suma con delegación de resultado en Solidity
 
-[![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
+![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue?style=flat&logo=solidity)
+![License](https://img.shields.io/badge/License-LGPL--3.0--only-green?style=flat)
+![ERC20](https://img.shields.io/badge/Standard-ERC20-orange?style=flat)
 
 ## 📌 Descripción
 
