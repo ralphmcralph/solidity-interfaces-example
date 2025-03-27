@@ -1,37 +1,37 @@
-# 🔢 Sumador – Sistema modular de suma con delegación de resultado en Solidity
+# 🔢 Sumador – Modular Addition System with Delegated Result Handling in Solidity
 
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue?style=flat&logo=solidity)
 ![License](https://img.shields.io/badge/License-LGPL--3.0--only-green?style=flat)
 ![ERC20](https://img.shields.io/badge/Standard-ERC20-orange?style=flat)
 
-## 📌 Descripción
+## 📌 Description
 
-Este repositorio contiene un sistema de contratos inteligentes en Solidity diseñado con una arquitectura modular basada en separación de responsabilidades:
+This repository contains a modular smart contract system in Solidity focused on separating concerns between computation and state management:
 
-- **`Sumador.sol`**: realiza la suma de dos enteros (`uint256`) y delega el almacenamiento del resultado.
-- **`Resultado.sol`**: contrato simple que almacena un resultado y permite consultarlo públicamente.
-- **`interfaces/IResultado.sol`**: interfaz usada por `Sumador` para interactuar con `Resultado` sin acoplamiento directo.
+- **`Sumador.sol`**: performs addition of two unsigned integers and delegates result storage and fee configuration.
+- **`Resultado.sol`**: manages persistent storage of a result and a configurable fee, protected by an admin.
+- **`interfaces/IResultado.sol`**: interface used by `Sumador` to interact with `Resultado`.
 
-Este diseño favorece la extensibilidad, reutilización de componentes y pruebas unitarias más sencillas.
+This design improves modularity, reusability, and testability of each component.
 
 ---
 
-## 📁 Estructura del repositorio
+## 📁 Repository Structure
 
 ```
 ├── interfaces/
-│   └── IResultado.sol      # Interfaz del contrato de resultado
-├── Resultado.sol           # Contrato de almacenamiento
-└── Sumador.sol             # Contrato que ejecuta la lógica de suma
+│   └── IResultado.sol      # Interface for result-handling contract
+├── Resultado.sol           # Storage contract with admin-protected config
+└── Sumador.sol             # Logic contract for addition and config delegation
 ```
 
 ---
 
-## 🧱 Componentes
+## 🧱 Components
 
 ### `IResultado.sol`
 
-Interfaz para contratos que gestionan resultados:
+Interface for contracts that manage results and configuration:
 
 ```solidity
 // SPDX-License-Identifier: LGPL-3.0-only
@@ -39,12 +39,13 @@ pragma solidity 0.8.24;
 
 interface IResultado {
     function setResultado(uint256 num_) external;
+    function setFee(uint256 newFee_) external;
 }
 ```
 
 ### `Resultado.sol`
 
-Contrato que almacena un único valor `uint256`:
+Stores a result and allows admin-controlled fee configuration:
 
 ```solidity
 // SPDX-License-Identifier: LGPL-3.0-only
@@ -52,16 +53,28 @@ pragma solidity 0.8.24;
 
 contract Resultado {
     uint256 public resultado;
+    address public admin;
+    uint256 public fee;
+
+    constructor(address admin_) {
+        admin = admin_;
+        fee = 5;
+    }
 
     function setResultado(uint256 num_) external {
         resultado = num_;
+    }
+
+    function setFee(uint256 newFee_) external {
+        if (tx.origin != admin) revert();
+        fee = newFee_;
     }
 }
 ```
 
 ### `Sumador.sol`
 
-Contrato que realiza la suma y delega el resultado a un contrato externo:
+Performs addition and delegates operations to `Resultado`:
 
 ```solidity
 // SPDX-License-Identifier: LGPL-3.0-only
@@ -80,50 +93,63 @@ contract Sumador {
         uint256 resultado_ = num1_ + num2_;
         IResultado(resultado).setResultado(resultado_);
     }
+
+    function setFee(uint256 newFee_) external {
+        IResultado(resultado).setFee(newFee_);
+    }
 }
 ```
 
 ---
 
-## 🛠️ Requisitos
+## 🛠️ Requirements
 
 - Solidity `^0.8.24`
 - [Hardhat](https://hardhat.org/), [Foundry](https://book.getfoundry.sh/), Remix, etc.
 
 ---
 
-## 🚀 Despliegue y uso
+## 🚀 Deployment and Usage
 
-### 1. Desplegar `Resultado.sol`
+### 1. Deploy `Resultado.sol`
 
-Este contrato actuará como destino de los resultados calculados.
+Provide an `admin` address. This contract stores results and allows only the admin to modify the fee.
 
-### 2. Desplegar `Sumador.sol`
+### 2. Deploy `Sumador.sol`
 
-Pasa la dirección del contrato `Resultado` como parámetro del constructor.
+Pass the deployed `Resultado` contract address to the constructor.
 
 ```solidity
 Sumador sumador = new Sumador(address(resultado));
 ```
 
-### 3. Realizar una operación
+### 3. Perform addition
 
 ```solidity
-sumador.addition(42, 58); // Resultado: 100
+sumador.addition(10, 15); // Result stored as 25
 ```
 
-### 4. Consultar el resultado
+### 4. Change fee (admin-only)
 
 ```solidity
-uint256 valor = resultado.resultado(); // valor = 100
+sumador.setFee(7); // Delegated call to Resultado.setFee(7)
 ```
 
-## 📄 Licencia
+### 5. Query stored result or fee
 
-Este proyecto está licenciado bajo la **GNU Lesser General Public License v3.0** – ver el archivo [`LICENSE`](./LICENSE) para más detalles.
+```solidity
+resultado.resultado(); // e.g., 25
+resultado.fee();       // e.g., 7
+```
 
 ---
 
-## 📬 Contacto
+## 📄 License
 
-Para dudas técnicas, sugerencias o mejoras, puedes abrir un _issue_ o un _pull request_.
+This project is licensed under the **GNU Lesser General Public License v3.0** – see the [`LICENSE`](./LICENSE) file for details.
+
+---
+
+## 📬 Contact
+
+For technical questions, suggestions, or improvements, feel free to open an _issue_ or a _pull request_.
