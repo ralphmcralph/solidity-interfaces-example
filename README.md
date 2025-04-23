@@ -1,4 +1,4 @@
-# 🔢 Sumador – Modular Addition System with Delegated Result Handling in Solidity
+# 🔢 Sumador – Modular Addition & Payment System in Solidity
 
 ![Solidity](https://img.shields.io/badge/Solidity-0.8.24-blue?style=flat&logo=solidity)
 ![License](https://img.shields.io/badge/License-LGPL--3.0--only-green?style=flat)
@@ -6,23 +6,33 @@
 
 ## 📌 Description
 
-This repository contains a modular smart contract system in Solidity focused on separating concerns between computation and state management:
+This repository presents a modular architecture for Solidity smart contracts focusing on two main domains:
 
-- **`Sumador.sol`**: performs addition of two unsigned integers and delegates result storage and fee configuration.
-- **`Resultado.sol`**: manages persistent storage of a result and a configurable fee, protected by an admin.
-- **`interfaces/IResultado.sol`**: interface used by `Sumador` to interact with `Resultado`.
+1. **Arithmetic Logic with Delegated Storage**
+2. **Ether Transfer Handling (payable functions)**
 
-This design improves modularity, reusability, and testability of each component.
+Key modules:
+
+- **`Sumador.sol`**: performs addition and delegates result storage and fee updates.
+- **`Resultado.sol`**: holds persistent result and admin-configured fee.
+- **`interfaces/IResultado.sol`**: interface implemented by `Resultado`.
+- **`PayableContractV2.sol`**: demonstrates ether sending using low-level calls with proper error handling.
+
+This separation of concerns enhances reusability, testability, and security.
 
 ---
 
 ## 📁 Repository Structure
 
 ```
+├── PayableFunctions/
+│   ├── PayableContract.sol      # Original payable example (legacy)
+│   └── PayableContractV2.sol    # Enhanced ether transfer logic
 ├── interfaces/
-│   └── IResultado.sol      # Interface for result-handling contract
-├── Resultado.sol           # Storage contract with admin-protected config
-└── Sumador.sol             # Logic contract for addition and config delegation
+│   └── IResultado.sol           # Interface for Resultado contract
+├── Resultado.sol                # Storage contract with admin protection
+├── Sumador.sol                  # Logic contract for addition & delegation
+├── RequireTest.sol              # Possibly for testing 'require' behavior
 ```
 
 ---
@@ -31,12 +41,9 @@ This design improves modularity, reusability, and testability of each component.
 
 ### `IResultado.sol`
 
-Interface for contracts that manage results and configuration:
+Defines the expected interface for result storage contracts:
 
 ```solidity
-// SPDX-License-Identifier: LGPL-3.0-only
-pragma solidity 0.8.24;
-
 interface IResultado {
     function setResultado(uint256 num_) external;
     function setFee(uint256 newFee_) external;
@@ -45,12 +52,9 @@ interface IResultado {
 
 ### `Resultado.sol`
 
-Stores a result and allows admin-controlled fee configuration:
+Stores a numerical result and allows only the `admin` to change the `fee`.
 
 ```solidity
-// SPDX-License-Identifier: LGPL-3.0-only
-pragma solidity 0.8.24;
-
 contract Resultado {
     uint256 public resultado;
     address public admin;
@@ -74,14 +78,9 @@ contract Resultado {
 
 ### `Sumador.sol`
 
-Performs addition and delegates operations to `Resultado`:
+Handles logic and delegates persistence and config:
 
 ```solidity
-// SPDX-License-Identifier: LGPL-3.0-only
-pragma solidity 0.8.24;
-
-import "./interfaces/IResultado.sol";
-
 contract Sumador {
     address public resultado;
 
@@ -100,56 +99,60 @@ contract Sumador {
 }
 ```
 
+### `PayableContractV2.sol`
+
+Demonstrates secure value transfer using `call`:
+
+```solidity
+function withdrawEther(uint256 amount) public {
+    (bool success,) = msg.sender.call{value: amount}("");
+    require(success, "Transfer failed");
+}
+```
+
+Includes notes on the 2300 gas stipend limitation and best practices for ETH transfers.
+
 ---
 
 ## 🛠️ Requirements
 
 - Solidity `^0.8.24`
-- [Hardhat](https://hardhat.org/), [Foundry](https://book.getfoundry.sh/), Remix, etc.
+- Compatible with [Hardhat](https://hardhat.org/), [Foundry](https://book.getfoundry.sh/), or Remix IDE
 
 ---
 
-## 🚀 Deployment and Usage
+## 🚀 Deployment & Usage
 
 ### 1. Deploy `Resultado.sol`
-
-Provide an `admin` address. This contract stores results and allows only the admin to modify the fee.
+Supply the admin address in constructor.
 
 ### 2. Deploy `Sumador.sol`
-
-Pass the deployed `Resultado` contract address to the constructor.
+Pass the `Resultado` contract address.
 
 ```solidity
 Sumador sumador = new Sumador(address(resultado));
 ```
 
-### 3. Perform addition
+### 3. Use `addition()`
+Adds two numbers and stores the result.
+
+### 4. Admin updates the fee
 
 ```solidity
-sumador.addition(10, 15); // Result stored as 25
+sumador.setFee(10);
 ```
 
-### 4. Change fee (admin-only)
-
-```solidity
-sumador.setFee(7); // Delegated call to Resultado.setFee(7)
-```
-
-### 5. Query stored result or fee
-
-```solidity
-resultado.resultado(); // e.g., 25
-resultado.fee();       // e.g., 7
-```
+### 5. Handle Ether transfers
+Use `PayableContractV2`'s `withdrawEther()` to safely transfer ETH.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **GNU Lesser General Public License v3.0** – see the [`LICENSE`](./LICENSE) file for details.
+Licensed under the **GNU Lesser General Public License v3.0** – see the [`LICENSE`](./LICENSE) file.
 
 ---
 
 ## 📬 Contact
 
-For technical questions, suggestions, or improvements, feel free to open an _issue_ or a _pull request_.
+Feel free to open an issue or pull request for feedback, bugs, or improvements.
